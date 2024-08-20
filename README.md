@@ -1,73 +1,106 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# Securing NestJS Microservice with OIDC (Auth Code Grant Flow) Using Apache APISIX
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+This repository demonstrates how to secure a NestJS microservice using OpenID Connect (OIDC) with the Authorization Code Grant Flow. Apache APISIX is used as the API Gateway to handle routing, authentication, and authorization. This project is configure as monorepo
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Prerequisites
 
-## Description
+- **Node.js**: v14 or later
+- **NestJS**: v8 or later
+- **Apache APISIX**: v2.10 or later
+- **OIDC Provider**: (e.g., Auth0, Keycloak)
+- **Docker** (optional, for containerized setup)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Directory Structure
 
-## Installation
-
-```bash
-$ npm install
+```
+root
+│
+├── apps/
+│   ├── service1/
+│   ├── service2/
+│   └── serviceN/
+│
+├── gateway/
+│   ├── config/
+│   └── gateway-files/
+│
+└── lib/
+    ├── shared-module1/
+    ├── shared-module2/
+    └── shared-moduleN/
 ```
 
-## Running the app
+### `apps/`
 
-```bash
-# development
-$ npm run start
+The `apps` directory contains all the services of the application. Each service is organized as a separate folder inside this directory. These services are designed to run independently but can share common modules or libraries from the `lib` directory.
 
-# watch mode
-$ npm run start:dev
+- **Example:**
+  - `service1/`: Contains all files related to Service 1.
+  - `service2/`: Contains all files related to Service 2.
 
-# production mode
-$ npm run start:prod
+### `gateway/`
+
+The `gateway` directory contains the configuration and setup for the API gateway. The gateway acts as the entry point for the system, routing requests to the appropriate services.
+
+- **config/**: Contains configuration files for the gateway.
+- **gateway-files/**: Contains other files related to the gateway, such as middleware, controllers, and utility functions.
+
+### `lib/`
+
+The `lib` directory contains shared modules and libraries that can be used across multiple services. These modules are designed to be reusable and help in reducing code duplication.
+
+- **Example:**
+  - `shared-module1/`: A module that can be imported and used by any service.
+  - `shared-module2/`: Another shared module for common utilities or services.
+
+## Setting Up Apache APISIX
+
+### 1. Install Apache APISIX
+
+Follow the official [Apache APISIX installation guide](https://apisix.apache.org/docs/apisix/getting-started).
+
+### 2. Configure APISIX with OIDC
+
+Create a route in Apache APISIX to secure your microservice:
+
+```json
+{
+  "uri": "/api/*",
+  "plugins": {
+    "openid-connect": {
+      "client_id": "your-client-id",
+      "client_secret": "your-client-secret",
+      "discovery": "https://your-oidc-provider.com/.well-known/openid-configuration",
+      "redirect_uri": "http://localhost:9080/callback",
+      "scope": "openid profile email"
+    }
+  },
+  "upstream": {
+    "nodes": {
+      "127.0.0.1:3000": 1
+    }
+  }
+}
 ```
 
-## Test
+## Running the Application
+
+### 1. Build the container
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+docker-compose -f docker-compose.yml up -d
 ```
 
-## Support
+### 2. Start Apache APISIX
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+Refer to the official documentation for starting APISIX. Ensure your configuration is applied.
 
-## Stay in touch
+## Testing the Authentication Flow
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+1. Access the microservice via the APISIX gateway via protected endpoint [localhost:9080/billing/v1/]
+2. You should get Auth Denied error if valid bearer token is not provided
+3. You can request AUTH CODE from your idp and validate the callback to exchange code for jwt token. refer to Auth service module for exchanging token implementation
 
-## License
+## Troubleshooting
 
-Nest is [MIT licensed](LICENSE).
+- **Issue**: When building the application container you might face some unexpected error on billing and orders service. This is a known issue. Just turn up the container again and you good to go
