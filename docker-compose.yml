@@ -1,0 +1,99 @@
+services:
+
+  apisix:
+    image: apache/apisix:3.9.1-debian
+    volumes:
+      - ./gateway/apisix_conf/standalone.yaml:/usr/local/apisix/conf/apisix.yaml:ro
+    environment:
+      - APISIX_STAND_ALONE=true
+    env_file:
+      - ./gateway/apisix_conf/.env
+    ports:
+      - "9180:9180/tcp"
+      - "9080:9080/tcp"
+      - "9091:9091/tcp"
+      - "9443:9443/tcp"
+      - "9092:9092/tcp"
+
+  # Microservice
+  auth:
+    build:
+      context: .
+      dockerfile: ./apps/auth/Dockerfile
+      target: development
+    command: >
+      sh -c "npm run start:dev auth"
+    env_file:
+      - ./apps/auth/.env
+    volumes:
+      - .:/app
+    depends_on:
+      - apisix
+    expose:
+      - "3002" # Only expose this port to other Docker containers
+
+  orders:
+    build:
+      context: .
+      dockerfile: ./apps/orders/Dockerfile
+      target: development
+    command: >
+      sh -c "npx prisma generate && npm run start:dev orders"
+    env_file:
+      - ./apps/orders/.env
+    depends_on:
+      # - billing
+      - rabbitmq
+      - mysql
+    volumes:
+      - .:/app
+    expose:
+      - "3000" # Only expose this port to other Docker containers
+
+  billing:
+    build:
+      context: .
+      dockerfile: ./apps/billing/Dockerfile
+      target: development
+    command: >
+      sh -c "npx prisma generate && npm run start:dev billing"
+
+    env_file:
+      - ./apps/billing/.env
+    depends_on:
+      - rabbitmq
+    volumes:
+      - .:/app
+    expose:
+      - "3001" # Only expose this port to other Docker containers
+
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - 'rabbitmq_data:/data'
+
+  mysql:
+    image: "mysql:9.0"
+    environment:
+      MYSQL_DATABASE: 'db'
+      # So you don't have to use root, but you can if you like
+      MYSQL_USER: 'root'
+      # You can use whatever password you like
+      MYSQL_PASSWORD: 'password'
+      # Password for root access
+      MYSQL_ROOT_PASSWORD: 'password'
+    ports:
+      # <Port exposed> : <MySQL Port running inside container>
+      - '3306:3306'
+    volumes:
+      - my-db:/var/lib/mysql
+
+volumes:
+  rabbitmq_data:
+  my-db:
+    # etcd_data:
+
+

@@ -1,0 +1,97 @@
+
+services:
+
+# Microservice
+
+  orders:
+    build:
+      context: .
+      dockerfile: ./apps/orders/Dockerfile
+      target: development
+    command: >
+      sh -c "npx prisma generate && npm run start:dev orders"
+    env_file:
+      - ./apps/orders/.env
+    depends_on:
+      # - billing
+      - rabbitmq
+      - mysql
+    volumes:
+      - .:/app
+    # ports:
+    #   - '3000:3000'
+
+  # billing:
+  #   build:
+  #     context: .
+  #     dockerfile: ./apps/billing/Dockerfile
+  #     target: development
+  #   command: npm run start:dev billing
+  #   env_file:
+  #     - ./apps/billing/.env
+  #   depends_on:
+  #     - rabbitmq
+  #   volumes:
+  #     - .:/usr/src/app
+  #     - /usr/src/app/node_modules
+
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - 'rabbitmq_data:/data'
+
+  mysql:
+    image: "mysql:9.0"
+    environment:
+      MYSQL_DATABASE: 'db'
+      # So you don't have to use root, but you can if you like
+      MYSQL_USER: 'root'
+      # You can use whatever password you like
+      MYSQL_PASSWORD: 'password'
+      # Password for root access
+      MYSQL_ROOT_PASSWORD: 'password'
+    ports:
+      # <Port exposed> : <MySQL Port running inside container>
+      - '3306:3306'
+    expose:
+      # Opens port 3306 on the container
+      - '3306'
+    volumes:
+      - my-db:/var/lib/mysql
+
+# Gateway
+  kong-dbless:
+    build:
+      context: .
+      dockerfile: ./gateway/kong/Dockerfile
+    container_name: kong-dbless
+    volumes:
+      - ./gateway/kong/declarative:/kong/declarative/
+    environment:
+      KONG_DATABASE: 'off'
+      KONG_DECLARATIVE_CONFIG: '/kong/declarative/kong.yml'
+      KONG_PROXY_ACCESS_LOG: '/dev/stdout'
+      KONG_ADMIN_ACCESS_LOG: '/dev/stdout'
+      KONG_PROXY_ERROR_LOG: '/dev/stderr'
+      KONG_ADMIN_ERROR_LOG: '/dev/stderr'
+      KONG_ADMIN_LISTEN: '0.0.0.0:8001'
+      KONG_ADMIN_GUI_URL: 'http://localhost:8002'
+    ports:
+      - "8000:8000"
+      - "8443:8443"
+      - "8001:8001"
+      - "8444:8444"
+      - "8002:8002"
+      - "8445:8445"
+      - "8003:8003"
+      - "8004:8004"
+
+
+volumes:
+  rabbitmq_data:
+  my-db:
+
+

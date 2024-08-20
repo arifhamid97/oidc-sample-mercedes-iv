@@ -1,0 +1,8 @@
+PORT = 3002
+
+
+#OIDC EXCHANGE CODE SECTION
+
+CLIENT_ID= <your realm client id>
+CLIENT_SECRET= <your realm client secret>
+OIDC_URL= <your oidc token endpoint>

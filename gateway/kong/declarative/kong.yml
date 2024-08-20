@@ -1,0 +1,17 @@
+---
+_format_version: '3.0'
+_transform: true
+services:
+  - name: example_service
+    url: https://www.google.com/
+    protocol: http
+    routes:
+      - name: example_route
+        paths:
+          - /mock
+        strip_path: true
+plugins:
+  - name: rate-limiting
+    config:
+      hour: 1
+      policy: local
